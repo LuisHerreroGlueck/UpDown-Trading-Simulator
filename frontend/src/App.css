@@ -1,0 +1,221 @@
+/* App.css - "Blue Border" Professional Theme */
+
+/* 1. Global Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color: #333;
+  /* Deine Button-Farbe als Variable für Konsistenz */
+  --primary-blue: #2c3e50;
+  --accent-blue: #3498db;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6;
+  min-height: 100vh;
+}
+
+/* 2. Container Styling */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* Header */
+.header {
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: var(--primary-blue);
+  font-weight: 600;
+}
+
+.subtitle {
+  color: #7f8c8d;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+/* 3. Cards (Haupt-Container) - MIT BLAUEM RAND */
+.card {
+  background: white;
+  border-radius: 8px;
+  /* Hier ist der blaue Rand passend zum Button */
+  border: 1px solid var(--primary-blue);
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.08); /* Leichter blauer Schatten */
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 25px;
+  font-size: 18px;
+  color: var(--primary-blue);
+  border-left: 5px solid var(--accent-blue);
+  padding-left: 15px;
+  font-weight: 700;
+}
+
+/* 4. Input Grid */
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
+  align-items: end;
+}
+
+.form-group {
+  width: 100%;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-blue); /* Label jetzt auch dunkelblau */
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Input Styling - MIT BLAUEM RAND */
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  /* Hier der Rahmen passend zum Button */
+  border: 1px solid var(--primary-blue);
+  border-radius: 6px;
+  font-size: 15px;
+  color: #2c3e50;
+  outline: none;
+  background-color: #fff;
+  transition: all 0.2s;
+}
+
+/* Beim Reinklicken wird der Rand etwas dicker/heller */
+input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+  background-color: #fcfcfc;
+}
+
+/* Range Inputs */
+.range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr;
+  align-items: center;
+  gap: 5px;
+}
+
+.range-separator {
+  text-align: center;
+  color: var(--primary-blue);
+  font-weight: bold;
+}
+
+/* Button - Das Vorbild für die Farbe */
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  margin-top: 30px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+  background-color: #34495e; /* Etwas heller beim Drüberfahren */
+}
+
+.btn-primary:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* 5. KPI Dashboard - MIT BLAUEM RAND */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.kpi-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  /* Der gewünschte blaue Rand */
+  border: 1px solid var(--primary-blue);
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(44, 62, 80, 0.05);
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+/* Farben für Ergebnisse */
+.text-success { color: #27ae60 !important; }
+.text-danger  { color: #c0392b !important; }
+
+/* Table Styling */
+.trade-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  /* Auch die Tabelle bekommt den Rahmen */
+  border: 1px solid var(--primary-blue);
+  border-radius: 6px;
+  scrollbar-width: thin;
+}
+
+.trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.trade-table th {
+  background-color: #ecf0f1; /* Leichtes Grau für Header */
+  color: var(--primary-blue);
+  font-weight: 700;
+  text-align: left;
+  padding: 12px 15px;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--primary-blue);
+}
+
+.trade-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid
