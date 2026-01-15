@@ -63,5 +63,9 @@ python -m venv .venv
 # 3. Abhängigkeiten installieren
 pip install -r requirements.txt
 
-# 4. Server starten
+# 4. Server starten in einem Terminal
 python -m uvicorn main:app --reload
+
+# 5. Frontend Starten mit einem anderen Terminal
+cd frontend #falls du noch im oberen Ordner bist
+npm run dev 
