@@ -63,9 +63,37 @@ python -m venv .venv
 # 3. Abhängigkeiten installieren
 pip install -r requirements.txt
 
-# 4. Server starten in einem Terminal
+# 4. Server starten
 python -m uvicorn main:app --reload
+```
 
-# 5. Frontend Starten mit einem anderen Terminal
-cd frontend #falls du noch im oberen Ordner bist
-npm run dev 
+Der Backend-Server läuft nun unter: **http://127.0.0.1:8000**
+
+---
+
+### 2. Frontend starten (React)
+
+Öffne ein **zweites Terminal** im Hauptverzeichnis des Projekts:
+
+```powershell
+# 1. In das Frontend-Verzeichnis wechseln
+cd frontend
+
+# 2. Abhängigkeiten installieren (nur beim ersten Mal nötig)
+npm install
+
+# 3. Entwicklungsserver starten
+npm run dev
+```
+
+Das Frontend läuft nun unter: **http://localhost:5173**
+
+---
+
+## Nutzung
+
+1. Öffne **http://localhost:5173** im Browser
+2. Gib die gewünschten Ticker-Symbole ein (z.B. `MSFT, IBM, ^GDAXI`)
+3. Konfiguriere die Strategie-Parameter (Drop %, Haltedauer, Take Profit)
+4. Klicke auf **"Analyse Starten"**
+5. Die Ergebnisse werden als KPIs, Charts und Trade-Historie angezeigt
