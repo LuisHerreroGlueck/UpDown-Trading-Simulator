@@ -12,7 +12,7 @@ class MeanReversionStrategy:
 
     def load_and_clean_data(self, ticker):
         """
-        Lädt die Daten und bereinigt den yfinance Multi-Index Header.
+        Lädt die Daten und bereinigt die Daten
         """
         file_path = os.path.join(self.data_path, f"{ticker}.csv")
         if not os.path.exists(file_path):
@@ -38,42 +38,38 @@ class MeanReversionStrategy:
 
     def backtest(self, ticker, drop_threshold_pct, lookback_days, hold_days, take_profit_pct, fee_rate):
         """
-        Führt den Backtest inkl. Gebühren und Realitäts-Check (Next Day Open) durch.
+        Führt den Backtest durch
         """
         df = self.load_and_clean_data(ticker)
         if df is None or df.empty:
             return []
 
-        # 1. Indikator berechnen
         df['change'] = df['Close'].pct_change(periods=lookback_days)
 
-        # 2. Signale finden
+
         threshold_decimal = -(drop_threshold_pct / 100)
-        # Wir finden die Tage, an denen der Drop passiert ist
+
         signal_indices = np.where(df['change'] < threshold_decimal)[0]
 
         trades = []
         last_exit_index = -1
 
         for idx in signal_indices:
-            # idx ist der Tag des Signals.
-            # REALITÄTS-CHECK: Wir können erst am NÄCHSTEN Morgen handeln (idx + 1)
+            """
+            Trade wird erst am nächsten Tag ausgeführt, da erst bei Börsenschluss der Tagesschluss bekannt ist.
+            """
             entry_idx = idx + 1
 
-            # Checks: Sind wir noch im alten Trade? Haben wir noch Daten für morgen?
             if entry_idx <= last_exit_index:
                 continue
             if entry_idx >= len(df):
                 continue
 
-            # --- ENTRY (Kauf zum Open) ---
             entry_date = df.index[entry_idx]
             raw_entry_price = df['Open'].iloc[entry_idx]
 
-            # KOSTEN: Wir zahlen Preis + Gebühr
             effective_entry_price = raw_entry_price * (1 + fee_rate)
 
-            # Zielpreis für Take Profit (basierend auf dem Chart-Kurs)
             target_price = raw_entry_price * (1 + take_profit_pct / 100)
 
             exit_price = None
@@ -81,10 +77,8 @@ class MeanReversionStrategy:
             exit_reason = ""
             days_held = 0
 
-            # --- EXIT LOOP ---
             found_exit = False
 
-            # Wir halten X Tage. Start bei 0, da wir auch "heute" (am Entry Tag) schon TP erreichen könnten
             for i in range(0, hold_days):
                 current_idx = entry_idx + i
 
@@ -97,7 +91,6 @@ class MeanReversionStrategy:
                 current_date = df.index[current_idx]
 
                 # Take Profit Logik
-                # Spezialfall: Wenn wir nicht am Kauftag sind (i>0) und Open > Target -> Gap Up
                 can_sell_at_open = (i > 0)
 
                 if current_high >= target_price:
@@ -110,7 +103,7 @@ class MeanReversionStrategy:
                     days_held = i
                     found_exit = True
 
-                # Time Stop Logik (Ende der Haltezeit)
+                # Haltedauer wurde erreicht
                 elif i == (hold_days - 1):
                     raw_exit_price = current_close
                     exit_reason = "Time Stop"
@@ -121,10 +114,8 @@ class MeanReversionStrategy:
                     last_exit_index = current_idx
                     exit_date = current_date
 
-                    # KOSTEN: Beim Verkauf bekommen wir Preis - Gebühr
                     effective_exit_price = raw_exit_price * (1 - fee_rate)
 
-                    # Gewinnberechnung (Netto)
                     profit_pct = (effective_exit_price - effective_entry_price) / effective_entry_price
                     profit_abs = self.initial_capital * profit_pct
 
@@ -145,10 +136,9 @@ class MeanReversionStrategy:
 
     def run_portfolio(self, tickers, params):
         all_trades = []
-        # Gebühr auslesen (Standard 0.1%)
         fee = params.get('fee', 0.001)
 
-        print(f"\n--- Starte Profi-Backtest ---")
+        print(f"\n--- Starte Backtest ---")
         print(f"Strategie: Next-Day-Open Entry nach {params['drop']}% Drop.")
         print(f"Kosten: {fee * 100:.2f}% pro Order (Spread+Gebühr).")
 
@@ -166,36 +156,26 @@ class MeanReversionStrategy:
         return all_trades
 
 
-# ... (Hier drüber steht deine MeanReversionStrategy Klasse) ...
-
-# --- HILFSFUNKTIONEN FÜR DIAGRAMME ---
 def plot_equity_curve(trades_df, initial_capital):
     """
-    Erstellt ein Diagramm des Kontostands über die Zeit.
+    Erstellt ein Diagramm für den Verlauf des Portfolios
     """
     if trades_df.empty:
         print("Keine Trades zum Plotten.")
         return
 
-    # Wir sortieren nach Verkaufsdatum, da dort der Gewinn realisiert wird
     df_sorted = trades_df.sort_values("sell_date")
 
-    # Kumulierte Summe des Profits berechnen
     df_sorted['cumulative_profit'] = df_sorted['profit_abs'].cumsum()
 
-    # Equity Kurve berechnen (Startkapital + Gewinn)
     df_sorted['equity'] = initial_capital + df_sorted['cumulative_profit']
 
-    # Wir fügen den Startpunkt hinzu (Tag vor dem ersten Trade = Startkapital)
-    # Das ist kosmetisch, sieht aber besser aus.
     start_date = df_sorted['sell_date'].min() - pd.Timedelta(days=1)
 
     plt.figure(figsize=(12, 6))
 
-    # Plotten
     plt.plot(df_sorted['sell_date'], df_sorted['equity'], label="Portfolio Wert", color="blue")
 
-    # Nulllinie für Profit (hier Startkapital-Linie)
     plt.axhline(y=initial_capital, color='r', linestyle='--', label="Startkapital")
 
     plt.title("Portfolio Performance (Equity Curve)")
@@ -209,9 +189,8 @@ def plot_equity_curve(trades_df, initial_capital):
 
 def plot_trades_on_chart(ticker, strategy_instance, trades_df):
     """
-    Zeigt den Aktienkurs und markiert die Einstiege (Grün) und Ausstiege (Rot).
+    Zeigt den Aktienkurs und markiert die Käufe und Verkäufe
     """
-    # 1. Wir laden die Kursdaten für den Chart
     print(f"Lade Chart-Daten für {ticker}...")
     df_prices = strategy_instance.load_and_clean_data(ticker)
 
@@ -219,7 +198,6 @@ def plot_trades_on_chart(ticker, strategy_instance, trades_df):
         print(f"Keine Daten für {ticker} gefunden.")
         return
 
-    # Wir filtern die Trades für DIESEN Ticker
     ticker_trades = trades_df[trades_df['ticker'] == ticker]
 
     if ticker_trades.empty:
@@ -228,8 +206,7 @@ def plot_trades_on_chart(ticker, strategy_instance, trades_df):
 
     plt.figure(figsize=(14, 7))
 
-    # 2. Den Kursverlauf zeichnen (Close Preis)
-    # Um es übersichtlich zu halten, schneiden wir den Chart auf den relevanten Zeitraum zu
+
     start_plot = pd.to_datetime(ticker_trades['buy_date'].min()) - pd.Timedelta(days=30)
     end_plot = pd.to_datetime(ticker_trades['sell_date'].max()) + pd.Timedelta(days=30)
 
@@ -238,12 +215,11 @@ def plot_trades_on_chart(ticker, strategy_instance, trades_df):
 
     plt.plot(subset.index, subset['Close'], label=f"{ticker} Kurs", color="gray", alpha=0.5)
 
-    # 3. Käufe markieren (Grünes Dreieck nach oben)
     plt.scatter(pd.to_datetime(ticker_trades['buy_date']),
                 ticker_trades['entry_price'],
                 color='green', marker='^', s=100, label='Kauf', zorder=5)
 
-    # 4. Verkäufe markieren (Rotes Dreieck nach unten)
+
     plt.scatter(pd.to_datetime(ticker_trades['sell_date']),
                 ticker_trades['exit_price'],
                 color='red', marker='v', s=100, label='Verkauf', zorder=5)
@@ -256,21 +232,18 @@ def plot_trades_on_chart(ticker, strategy_instance, trades_df):
     plt.show()
 
 
-# --- DEIN TEST-ABLAUF ---
 if __name__ == "__main__":
     from data_manager import DataManager
 
-    # Pandas Einstellungen
+
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', 1000)
 
-    # --- DATEN SICHERSTELLEN ---
+
     tickers = ["MSFT", "IBM", "SIE.DE", "^GDAXI"]
-    # Hinweis: Falls du noch keine Daten hast, setze reload=True einmalig!
     dm = DataManager()
     dm.get_historical_data(tickers, "2000-01-01", "2025-01-01", reload=False)
 
-    # --- BACKTEST ---
     start_cap = 10000
     bot = MeanReversionStrategy(initial_capital=start_cap)
 

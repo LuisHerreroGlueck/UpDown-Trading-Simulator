@@ -5,7 +5,6 @@ from typing import List
 import pandas as pd
 import numpy as np
 
-# Deine existierenden Klassen
 from strategy import MeanReversionStrategy
 from data_manager import DataManager
 
@@ -19,7 +18,6 @@ app.add_middleware(
 )
 
 
-# --- MODELS ---
 class OptimizationRequest(BaseModel):
     tickers: List[str]
     drop_options: List[float]
@@ -50,7 +48,6 @@ class BestStrategyResponse(BaseModel):
     trades: List[TradeResult]
 
 
-# --- NEU: INTELLIGENTE KURVEN-BERECHNUNG ---
 def calculate_comparison_curves(trades, tickers, initial_capital, data_dict):
     """
     Berechnet tagesgenau die Strategie-Equity vs. Buy & Hold Benchmark.
@@ -66,47 +63,40 @@ def calculate_comparison_curves(trades, tickers, initial_capital, data_dict):
 
     all_dates = all_dates.sort_values().unique()
 
-    # DataFrame erstellen, der jeden Tag abdeckt
     df_curve = pd.DataFrame(index=all_dates)
 
-    # --- A. STRATEGIE KURVE (Realisierte Gewinne) ---
-    # Wir starten mit Startkapital
     df_curve['strategy_equity'] = 0.0  # Wird später gefüllt
     daily_profits = pd.Series(0.0, index=all_dates)
 
     if trades:
         trades_df = pd.DataFrame(trades)
         trades_df['sell_date'] = pd.to_datetime(trades_df['sell_date'])
-        # Wir summieren die Gewinne an den Verkaufstagen
+
         grouped_profits = trades_df.groupby('sell_date')['profit_abs'].sum()
-        # Wir ordnen sie dem Zeitstrahl zu
+
         daily_profits = daily_profits.add(grouped_profits, fill_value=0)
 
-    # Kumulierte Summe + Startkapital = Kontostand
+
     df_curve['strategy_equity'] = initial_capital + daily_profits.cumsum()
-    # Lücken (Wochenenden/Feiertage) auffüllen
+
     df_curve['strategy_equity'] = df_curve['strategy_equity'].ffill()
 
-    # --- B. BUY & HOLD BENCHMARK ---
-    # Wir teilen das Kapital am Anfang gleichmäßig auf alle Ticker auf
+    #BUY & HOLD BENCHMARK
     allocation_per_ticker = initial_capital / len(tickers)
     df_curve['benchmark_equity'] = 0.0
 
     for t in tickers:
         if t in data_dict and not data_dict[t].empty:
-            # Wir holen die Close-Preise
+
             df_asset = data_dict[t]
 
-            # Helper: Falls MultiIndex Header (yfinance)
             if isinstance(df_asset.columns, pd.MultiIndex):
                 prices = df_asset['Close'].iloc[:, 0]
             else:
                 prices = df_asset['Close']
 
-            # An unseren Zeitstrahl anpassen
             prices = prices.reindex(all_dates).ffill().bfill()
 
-            # Performance berechnen: (Aktueller Preis / Start Preis) * Investiertes Geld
             start_price = prices.iloc[0]
             if start_price > 0:
                 val_series = (prices / start_price) * allocation_per_ticker
@@ -114,10 +104,9 @@ def calculate_comparison_curves(trades, tickers, initial_capital, data_dict):
             else:
                 df_curve['benchmark_equity'] += allocation_per_ticker
 
-    # --- JSON FORMATIERUNG ---
+
     chart_data = []
-    # Um Datenmenge zu sparen, nehmen wir jeden 5. Tag (reicht für Chart) oder alles
-    # Wir nehmen alles, aber filtern NaNs
+
     df_curve = df_curve.fillna(method='ffill').fillna(initial_capital)
 
     for date, row in df_curve.iterrows():
@@ -137,7 +126,6 @@ def get_best_strategy(request: OptimizationRequest):
     print(f"Starte Optimierung für {len(request.tickers)} Ticker...")
 
     dm = DataManager()
-    # Wir speichern die Daten in einer Variable für die Benchmark-Berechnung
     data_dict = dm.get_historical_data(request.tickers, "2000-01-01", "2025-01-01", reload=False)
 
     bot = MeanReversionStrategy(initial_capital=request.initial_capital)
@@ -177,7 +165,6 @@ def get_best_strategy(request: OptimizationRequest):
     if not best_params:
         raise HTTPException(status_code=404, detail="Keine profitablen Trades gefunden.")
 
-    # Hier rufen wir die NEUE Funktion auf
     equity_data = calculate_comparison_curves(
         best_trades, request.tickers, request.initial_capital, data_dict
     )
@@ -205,7 +192,6 @@ def get_chart_data(ticker: str):
 
     df = data_dict[ticker].copy()
 
-    # Header Bereinigung
     if isinstance(df.columns, pd.MultiIndex):
         try:
             clean_df = pd.DataFrame(index=df.index)
